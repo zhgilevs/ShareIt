@@ -4,8 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.OnCreate;
-import ru.practicum.shareit.OnUpdate;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.utils.OnCreate;
+import ru.practicum.shareit.utils.OnUpdate;
 
 import java.util.List;
 

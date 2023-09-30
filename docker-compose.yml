@@ -1,0 +1,28 @@
+version: "3.8"
+services:
+  postgres:
+    container_name: shareit_postgres
+    image: postgres:13.7-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      LANG: ru_RU.UTF8
+      LANGUAGE: ru_RU:ru
+      LC_LANG: ru_RU.UTF8
+      LC_ALL: ru_RU.UTF8
+      POSTGRES_INITDB_ARGS: '--locale=ru_RU.UTF8'
+      POSTGRES_DB: "shareit"
+      POSTGRES_USER: "pg-user"
+      POSTGRES_PASSWORD: "pg-password"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4G
+
+volumes:
+  postgres-data:
