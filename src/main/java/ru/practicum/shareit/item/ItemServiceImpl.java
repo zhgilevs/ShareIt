@@ -2,6 +2,8 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,13 +14,15 @@ import ru.practicum.shareit.exception.NotAvailableException;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.OwnershipException;
 import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.utils.EntityGetter;
+import ru.practicum.shareit.common.EntityGetter;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static ru.practicum.shareit.booking.dto.BookingMapper.toBookingInfoDto;
@@ -40,7 +44,12 @@ public class ItemServiceImpl implements ItemService {
     @Transactional(rollbackFor = NotFoundException.class)
     public ItemDto create(long userId, ItemDto itemDto) {
         User owner = entityGetter.getUser(userId);
+        Optional<ItemRequest> request = Optional.empty();
+        if (itemDto.getRequestId() != null) {
+            request = entityGetter.getItemRequest(itemDto.getRequestId());
+        }
         Item item = toItem(itemDto);
+        item.setRequest(request.orElse(null));
         item.setOwner(owner);
         item = itemRepository.save(item);
         log.info("Item with ID: '" + item.getId() + "' of user with ID: '" + userId + "' successfully created");
@@ -70,14 +79,14 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional(rollbackFor = NotFoundException.class, readOnly = true)
-    public List<ItemInfoDto> getAll(long userId) {
+    public List<ItemInfoDto> getAll(long userId, int from, int size) {
         entityGetter.getUser(userId);
-        Sort sort = Sort.by("id");
-        List<Item> items = itemRepository.findByOwnerId(userId, sort);
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("id"));
+        List<Item> items = itemRepository.findByOwnerId(userId, pageable);
         List<ItemInfoDto> result = items.stream()
                 .map(ItemMapper::toItemInfoDto)
                 .collect(Collectors.toList());
-        List<Booking> bookings = bookingRepository.findByItemOwnerIdAndItemIn(userId, items, sort);
+        List<Booking> bookings = bookingRepository.findByItemOwnerIdAndItemIn(userId, items, pageable);
         List<Comment> comments = commentRepository.findByItemIn(items);
         for (ItemInfoDto itemInfoDto : result) {
             addBookings(itemInfoDto, bookings);
@@ -105,12 +114,13 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ItemDto> search(String text) {
+    public List<ItemDto> search(String text, int from, int size) {
         if (text.isBlank()) {
             log.info("List of items is empty because of text is blank");
             return Collections.emptyList();
         }
-        List<Item> result = itemRepository.search(text);
+        Pageable pageable = PageRequest.of(from, size, Sort.by("id"));
+        List<Item> result = itemRepository.search(text, pageable);
         log.info(result.size() + " items founded by text: '" + text + "'");
         return result.stream()
                 .map(ItemMapper::toItemDto)
@@ -140,7 +150,7 @@ public class ItemServiceImpl implements ItemService {
         comment.setCreated(LocalDateTime.now());
         comment.setItem(item);
         comment.setAuthor(user);
-        commentRepository.save(comment);
+        comment = commentRepository.save(comment);
         log.info("Comment with ID: '" + comment.getId()
                 + "' of user with ID: '" + userId
                 + "' to item with ID: '" + itemId + "' successfully created");
