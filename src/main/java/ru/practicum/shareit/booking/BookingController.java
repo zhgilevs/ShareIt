@@ -6,13 +6,16 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
-import ru.practicum.shareit.utils.OnCreate;
+import ru.practicum.shareit.common.OnCreate;
 
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
 @RestController
 @RequestMapping(path = "/bookings")
 @RequiredArgsConstructor
+@Validated
 @Slf4j
 public class BookingController {
 
@@ -43,15 +46,19 @@ public class BookingController {
 
     @GetMapping
     List<BookingResponseDto> getByBookerId(@RequestHeader(USER_HEADER) long bookerId,
-                                           @RequestParam(required = false) String state) {
+                                           @RequestParam(name = "state", required = false) String state,
+                                           @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
+                                           @RequestParam(name = "size", defaultValue = "10") @Positive int size) {
         log.info("Receiving all bookings of booker with ID: '" + bookerId + "'");
-        return bookingService.getByBookerId(bookerId, state);
+        return bookingService.getByBookerId(bookerId, state, from, size);
     }
 
     @GetMapping(path = "/owner")
     List<BookingResponseDto> getByOwnerId(@RequestHeader(USER_HEADER) long ownerId,
-                                          @RequestParam(required = false) String state) {
+                                          @RequestParam(name = "state", required = false) String state,
+                                          @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
+                                          @RequestParam(name = "size", defaultValue = "10") @Positive int size) {
         log.info("Receiving all bookings to items of owner with ID: '" + ownerId + "'");
-        return bookingService.getByOwnerId(ownerId, state);
+        return bookingService.getByOwnerId(ownerId, state, from, size);
     }
 }

@@ -7,13 +7,16 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemInfoDto;
-import ru.practicum.shareit.utils.OnCreate;
+import ru.practicum.shareit.common.OnCreate;
 
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
 @RestController
 @RequestMapping(path = "/items")
 @RequiredArgsConstructor
+@Validated
 @Slf4j
 public class ItemController {
 
@@ -36,9 +39,11 @@ public class ItemController {
     }
 
     @GetMapping
-    List<ItemInfoDto> getAll(@RequestHeader(USER_HEADER) long userId) {
+    List<ItemInfoDto> getAll(@RequestHeader(USER_HEADER) long userId,
+                             @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
+                             @RequestParam(name = "size", defaultValue = "10") @Positive int size) {
         log.info("Receiving items of user with ID: '" + userId + "'");
-        return itemService.getAll(userId);
+        return itemService.getAll(userId, from, size);
     }
 
     @GetMapping(path = "{itemId}")
@@ -50,9 +55,11 @@ public class ItemController {
 
     @GetMapping(path = "/search")
     List<ItemDto> search(@RequestHeader(USER_HEADER) long userId,
-                         @RequestParam String text) {
+                         @RequestParam String text,
+                         @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
+                         @RequestParam(name = "size", defaultValue = "10") @Positive int size) {
         log.info("User with ID: '" + userId + "' search item by text: '" + text + "'");
-        return itemService.search(text);
+        return itemService.search(text, from, size);
     }
 
     @PostMapping(path = "/{itemId}/comment")

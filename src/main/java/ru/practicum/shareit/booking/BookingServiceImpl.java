@@ -2,6 +2,8 @@ package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,7 +13,7 @@ import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.exception.*;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.utils.EntityGetter;
+import ru.practicum.shareit.common.EntityGetter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,7 +37,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDto create(long bookerId, BookingRequestDto bookingRequestDto) {
         LocalDateTime start = bookingRequestDto.getStart();
         LocalDateTime end = bookingRequestDto.getEnd();
-        if (end.isBefore(start) || start.isAfter(end) || start.equals(end)) {
+        if (end.isBefore(start) || start.equals(end)) {
             throw new TimeValidationException("Start or End in request body is incorrect");
         }
         long itemId = bookingRequestDto.getItemId();
@@ -100,29 +102,29 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(rollbackFor = {NotFoundException.class, UnsupportedStatusException.class}, readOnly = true)
-    public List<BookingResponseDto> getByBookerId(long bookerId, String state) {
+    public List<BookingResponseDto> getByBookerId(long bookerId, String state, int from, int size) {
         State enumState = parseState(state);
         entityGetter.getUser(bookerId);
-        Sort sort = Sort.by("start").descending();
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("start").descending());
         List<Booking> result = new ArrayList<>();
         switch (enumState) {
             case ALL:
-                result = bookingRepository.findByBookerId(bookerId, sort);
+                result = bookingRepository.findByBookerId(bookerId, pageable);
                 break;
             case PAST:
-                result = bookingRepository.findByBookerIdPastState(bookerId, sort);
+                result = bookingRepository.findByBookerIdPastState(bookerId, pageable);
                 break;
             case FUTURE:
-                result = bookingRepository.findByBookerIdFutureState(bookerId, sort);
+                result = bookingRepository.findByBookerIdFutureState(bookerId, pageable);
                 break;
             case CURRENT:
-                result = bookingRepository.findByBookerIdCurrentState(bookerId, sort);
+                result = bookingRepository.findByBookerIdCurrentState(bookerId, pageable);
                 break;
             case WAITING:
-                result = bookingRepository.findByBookerIdAndStatus(bookerId, Status.WAITING, sort);
+                result = bookingRepository.findByBookerIdAndStatus(bookerId, Status.WAITING, pageable);
                 break;
             case REJECTED:
-                result = bookingRepository.findByBookerIdAndStatus(bookerId, Status.REJECTED, sort);
+                result = bookingRepository.findByBookerIdAndStatus(bookerId, Status.REJECTED, pageable);
                 break;
         }
         log.info(result.size() + " bookings found by booker with ID: '" + bookerId + "'");
@@ -133,29 +135,29 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(rollbackFor = {NotFoundException.class, UnsupportedStatusException.class}, readOnly = true)
-    public List<BookingResponseDto> getByOwnerId(long ownerId, String state) {
+    public List<BookingResponseDto> getByOwnerId(long ownerId, String state, int from, int size) {
         State enumState = parseState(state);
         entityGetter.getUser(ownerId);
-        Sort sort = Sort.by("start").descending();
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("start").descending());
         List<Booking> result = new ArrayList<>();
         switch (enumState) {
             case ALL:
-                result = bookingRepository.findByItemOwnerId(ownerId, sort);
+                result = bookingRepository.findByItemOwnerId(ownerId, pageable);
                 break;
             case PAST:
-                result = bookingRepository.findByItemOwnerIdPastState(ownerId, sort);
+                result = bookingRepository.findByItemOwnerIdPastState(ownerId, pageable);
                 break;
             case FUTURE:
-                result = bookingRepository.findByItemOwnerIdFutureState(ownerId, sort);
+                result = bookingRepository.findByItemOwnerIdFutureState(ownerId, pageable);
                 break;
             case CURRENT:
-                result = bookingRepository.findByItemOwnerIdCurrentState(ownerId, sort);
+                result = bookingRepository.findByItemOwnerIdCurrentState(ownerId, pageable);
                 break;
             case WAITING:
-                result = bookingRepository.findByItemOwnerIdAndStatus(ownerId, Status.WAITING, sort);
+                result = bookingRepository.findByItemOwnerIdAndStatus(ownerId, Status.WAITING, pageable);
                 break;
             case REJECTED:
-                result = bookingRepository.findByItemOwnerIdAndStatus(ownerId, Status.REJECTED, sort);
+                result = bookingRepository.findByItemOwnerIdAndStatus(ownerId, Status.REJECTED, pageable);
                 break;
         }
         log.info(result.size() + " bookings found by owner with ID: '" + ownerId + "'");
